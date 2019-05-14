@@ -1,16 +1,16 @@
 <img src="https://osmbuildings.org/logo.svg" width="100" height="88">
 
-OSM Buildings is a JavaScript library for visualizing OpenStreetMap building geometry on interactive maps.
+OSM Buildings - это библиотека JavaScript для визуализации геометрии зданий OpenStreetMap на интерактивных картах.
 
-Example: https://osmbuildings.org/
+Пример: https://osmbuildings.org/
 
-The new WebGL version is located here: https://github.com/OSMBuildings/OSMBuildings
-All variants of OSM Buildings will eventually land over there.
+Новая версия WebGL находится здесь: https://github.com/OSMBuildings/OSMBuildings
+Все варианты новых зданий OSM в конечном итоге появляются там.
 
-There is also documentation of OSM Buildings Server side:
+Существует также документация OSM Buildings Server side:
 https://github.com/kekscom/osmbuildings/blob/master/docs/server.md
 
-## Deprecated methods and their replacements
+## Устаревшие методы и их замены
 
   - `loadData()` => `load()`
   - `setData()` => `data()`
@@ -19,9 +19,9 @@ https://github.com/kekscom/osmbuildings/blob/master/docs/server.md
   - `screenshot()` => no replacement
   - `getDetails()` => no replacement
 
-**Example** https://osmbuildings.org/
+**Приме** https://osmbuildings.org/
 
-It's safe use the [master branch](https://github.com/kekscom/osmbuildings/tree/master/dist/) for production.
+Совет: Безопасно использовать [master branch](https://github.com/kekscom/osmbuildings/tree/master/dist/) для готового материала.
 
 For further information visit https://osmbuildings.org, follow [@osmbuildings](https://twitter.com/osmbuildings/) on Twitter or report issues [here on Github](https://github.com/kekscom/osmbuildings/issues/).
 
