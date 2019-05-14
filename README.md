@@ -19,9 +19,9 @@ https://github.com/kekscom/osmbuildings/blob/master/docs/server.md
   - `screenshot()` => no replacement
   - `getDetails()` => no replacement
 
-**Приме** https://osmbuildings.org/
+**Пример** https://osmbuildings.org/
 
-Совет: Безопасно использовать [master branch](https://github.com/kekscom/osmbuildings/tree/master/dist/) для готового материала.
+Совет! Безопаснее использовать [master branch](https://github.com/kekscom/osmbuildings/tree/master/dist/) для готового материала.
 
 For further information visit https://osmbuildings.org, follow [@osmbuildings](https://twitter.com/osmbuildings/) on Twitter or report issues [here on Github](https://github.com/kekscom/osmbuildings/issues/).
 
