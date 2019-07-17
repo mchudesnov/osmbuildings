@@ -1,25 +1,16 @@
 
 var Data = {
 
-  loadedItems: {}, // maintain a list of cached items in order to avoid duplicates on tile borders
+  loadedItems: {}, // maintain a list of cached items in order to avoid duplicates
   items: [],
 
-  getPixelFootprint: function(buffer) {
-    var footprint = new Int32Array(buffer.length),
-      px;
-
-    for (var i = 0, il = buffer.length-1; i < il; i+=2) {
-      px = geoToPixel(buffer[i], buffer[i+1]);
-      footprint[i]   = px.x;
-      footprint[i+1] = px.y;
-    }
-
-    footprint = simplifyPolygon(footprint);
-    if (footprint.length < 8) { // 3 points & end==start (*2)
-      return;
-    }
-
-    return footprint;
+  projectGeometry: function(geometry) {
+    return geometry.map(function(polygon) {
+      return polygon.map(function(point) {
+        return project(point[0], point[1]);
+      });
+      return simplifyPolygon(polygon);
+    });
   },
 
   resetItems: function() {
@@ -33,9 +24,9 @@ var Data = {
     var geojson = GeoJSON.read(data);
     for (var i = 0, il = geojson.length; i < il; i++) {
       item = geojson[i];
-      id = item.id || [item.footprint[0], item.footprint[1], item.height, item.minHeight].join(',');
+      id = item.id || [item.geometry[0][0], item.geometry[0][1], item.height, item.minHeight].join(',');
       if (!this.loadedItems[id]) {
-        if ((scaledItem = this.scale(item))) {
+        if ((scaledItem = this.scaleItem(item))) {
           scaledItem.scale = allAreNew ? 0 : 1;
           this.items.push(scaledItem);
           this.loadedItems[id] = 1;
@@ -45,7 +36,39 @@ var Data = {
     fadeIn();
   },
 
-  scale: function(item) {
+  scaleGeometry: function(geometry, factor) {
+    return geometry.map(function(polygon) {
+      return polygon.map(function(point) {
+        return [
+          point[0] * factor,
+          point[1] * factor
+        ];
+      });
+    });
+  },
+
+  scale: function(factor) {
+    Data.items = Data.items.map(function(item) {
+      // item.height = Math.min(item.height*factor, MAX_HEIGHT); // TODO: should be filtered by renderer
+
+      item.height *= factor;
+      item.minHeight *= factor;
+
+      item.geometry = Data.scaleGeometry(item.geometry, factor);
+      item.center[0] *= factor;
+      item.center[1] *= factor;
+
+      if (item.radius) {
+        item.radius *= factor;
+      }
+
+      item.roofHeight *= factor;
+
+      return item;
+    });
+  },
+
+  scaleItem: function(item) {
     var
       res = {},
       // TODO: calculate this on zoom change only
@@ -62,11 +85,11 @@ var Data = {
       return;
     }
 
-    res.footprint = this.getPixelFootprint(item.footprint);
-    if (!res.footprint) {
+    res.geometry = Data.projectGeometry(item.geometry);
+    if (res.geometry[0].length < 4) { // 3 points & end==start (*2)
       return;
     }
-    res.center = getCenter(res.footprint);
+    res.center = getCenter(res.geometry[0]);
 
     if (item.radius) {
       res.radius = item.radius*PIXEL_PER_DEG;
@@ -77,26 +100,14 @@ var Data = {
     if (item.roofShape) {
       res.roofShape = item.roofShape;
     }
-    if ((res.roofShape === 'cone' || res.roofShape === 'dome') && !res.shape && isRotational(res.footprint)) {
+    if ((res.roofShape === 'cone' || res.roofShape === 'dome') && !res.shape && isRotational(res.geometry[0])) {
       res.shape = 'cylinder';
-    }
-
-    if (item.holes) {
-      res.holes = [];
-      var innerFootprint;
-      for (var i = 0, il = item.holes.length; i < il; i++) {
-        // TODO: simplify
-        if ((innerFootprint = this.getPixelFootprint(item.holes[i]))) {
-          res.holes.push(innerFootprint);
-        }
-      }
     }
 
     var color;
 
     if (item.wallColor) {
       if ((color = Color.parse(item.wallColor))) {
-        color = color.alpha(ZOOM_FACTOR);
         res.altColor  = ''+ color.lightness(0.8);
         res.wallColor = ''+ color;
       }
@@ -104,7 +115,7 @@ var Data = {
 
     if (item.roofColor) {
       if ((color = Color.parse(item.roofColor))) {
-        res.roofColor = ''+ color.alpha(ZOOM_FACTOR);
+        res.roofColor = ''+ color;
       }
     }
 
@@ -175,6 +186,6 @@ var Data = {
   loadTile: function(x, y, zoom, callback) {
     var s = 'abcd'[(x+y) % 4];
     var url = this.src.replace('{s}', s).replace('{x}', x).replace('{y}', y).replace('{z}', zoom);
-    return Request.loadJSON(url, callback);
+    return ajax(url, callback);
   }
 };

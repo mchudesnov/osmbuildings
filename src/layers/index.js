@@ -34,25 +34,46 @@ var Layers = {
   items: [],
 
   init: function() {
-    this.container.style.pointerEvents = 'none';
-    this.container.style.position = 'absolute';
-    this.container.style.left = 0;
-    this.container.style.top  = 0;
+    Layers.container.className = 'osmb-container';
 
-    // TODO: improve this to .setContext(context)
-    Shadows.context    = this.createContext(this.container);
-    Simplified.context = this.createContext(this.container);
-    Buildings.context  = this.createContext(this.container);
-    HitAreas.context   = this.createContext();
-//    Debug.context      = this.createContext(this.container);
+    // TODO: improve this
+    Shadows.init(Layers.createContext(Layers.container));
+    Simplified.init(Layers.createContext(Layers.container));
+    Buildings.init(Layers.createContext(Layers.container));
+    HitAreas.init(Layers.createContext());
+  },
+
+  clear: function() {
+    Shadows.clear();
+    Simplified.clear();
+    Buildings.clear();
+    HitAreas.clear();
+  },
+
+  setOpacity: function(opacity) {
+    Shadows.setOpacity(opacity);
+    Simplified.setOpacity(opacity);
+    Buildings.setOpacity(opacity);
+    HitAreas.setOpacity(opacity);
   },
 
   render: function(quick) {
+    // show on high zoom levels only
+    if (ZOOM < MIN_ZOOM) {
+      Layers.clear();
+      return;
+    }
+
+    // don't render during zoom
+    if (IS_ZOOMING) {
+      return;
+    }
+
     requestAnimFrame(function() {
       if (!quick) {
         Shadows.render();
         Simplified.render();
-        HitAreas.render();
+        //HitAreas.render(); // TODO: do this on demand
       }
       Buildings.render();
     });
@@ -60,11 +81,7 @@ var Layers = {
 
   createContext: function(container) {
     var canvas = document.createElement('CANVAS');
-    canvas.style.transform = 'translate3d(0, 0, 0)'; // turn on hw acceleration
-    canvas.style.imageRendering = 'optimizeSpeed';
-    canvas.style.position = 'absolute';
-    canvas.style.left = 0;
-    canvas.style.top  = 0;
+    canvas.className = 'osmb-layer';
 
     var context = canvas.getContext('2d');
     context.lineCap   = 'round';
@@ -72,7 +89,7 @@ var Layers = {
     context.lineWidth = 1;
     context.imageSmoothingEnabled = false;
 
-    this.items.push(canvas);
+    Layers.items.push(canvas);
     if (container) {
       container.appendChild(canvas);
     }
@@ -81,25 +98,24 @@ var Layers = {
   },
 
   appendTo: function(parentNode) {
-    parentNode.appendChild(this.container);
+    parentNode.appendChild(Layers.container);
   },
 
   remove: function() {
-    this.container.parentNode.removeChild(this.container);
+    Layers.container.parentNode.removeChild(Layers.container);
   },
 
   setSize: function(width, height) {
-    for (var i = 0, il = this.items.length; i < il; i++) {
-      this.items[i].width  = width;
-      this.items[i].height = height;
-    }
+    Layers.items.forEach(function(canvas) {
+      canvas.width  = width;
+      canvas.height = height;
+    });
   },
 
   // usually called after move: container jumps by move delta, cam is reset
   setPosition: function(x, y) {
-    this.container.style.left = x +'px';
-    this.container.style.top  = y +'px';
+    Layers.container.style.left = x +'px';
+    Layers.container.style.top  = y +'px';
   }
 };
 
-Layers.init();

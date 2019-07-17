@@ -1,36 +1,49 @@
 var Simplified = {
 
-  maxZoom: MIN_ZOOM+2,
-  maxHeight: 5,
+  context: null,
+
+  MAX_ZOOM: 16, // max zoom where buildings could render simplified
+  MAX_HEIGHT: 5, // max building height in order to be simple
+
+  init: function(context) {
+    this.context = context;
+  },
+
+  clear: function() {
+    this.context.clearRect(0, 0, WIDTH, HEIGHT);
+  },
+
+  setOpacity: function(opacity) {
+    this.context.canvas.style.opacity = opacity;
+  },
 
   isSimple: function(item) {
-    return (ZOOM <= this.maxZoom && item.height+item.roofHeight < this.maxHeight);
+    return (ZOOM <= Simplified.MAX_ZOOM && item.height+item.roofHeight < Simplified.MAX_HEIGHT);
   },
 
   render: function() {
+    this.clear();
+    
     var context = this.context;
-    context.clearRect(0, 0, WIDTH, HEIGHT);
 
     // show on high zoom levels only and avoid rendering during zoom
-    if (ZOOM < MIN_ZOOM || isZooming || ZOOM > this.maxZoom) {
+    if (ZOOM > Simplified.MAX_ZOOM) {
       return;
     }
 
     var
       item,
-      footprint,
       dataItems = Data.items;
 
     for (var i = 0, il = dataItems.length; i < il; i++) {
       item = dataItems[i];
 
-      if (item.height >= this.maxHeight) {
+      if (item.height >= Simplified.MAX_HEIGHT) {
         continue;
       }
 
-      footprint = item.footprint;
-
-      if (!isVisible(footprint)) {
+      // TODO: track bboxes
+      if (!isVisible(item.geometry[0])) {
         continue;
       }
 
@@ -42,7 +55,7 @@ var Simplified = {
         case 'cone':
         case 'dome':
         case 'sphere': Cylinder.simplified(context, item.center, item.radius);  break;
-        default: Block.simplified(context, footprint, item.holes);
+        default: Block.simplified(context, item.geometry);
       }
     }
   }

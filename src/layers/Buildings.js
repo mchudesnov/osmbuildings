@@ -1,26 +1,34 @@
 var Buildings = {
 
+  context: null,
+
+  init: function(context) {
+    this.context = context;
+  },
+
+  clear: function() {
+    this.context.clearRect(0, 0, WIDTH, HEIGHT);
+  },
+
+  setOpacity: function(opacity) {
+    this.context.canvas.style.opacity = opacity;
+  },
+
   project: function(p, m) {
-    return {
-      x: (p.x-CAM_X) * m + CAM_X <<0,
-      y: (p.y-CAM_Y) * m + CAM_Y <<0
-    };
+    return [
+      (p[0]-CAM_X) * m + CAM_X <<0,
+      (p[1]-CAM_Y) * m + CAM_Y <<0
+    ];
   },
 
   render: function() {
-    var context = this.context;
-    context.clearRect(0, 0, WIDTH, HEIGHT);
-
-    // show on high zoom levels only and avoid rendering during zoom
-    if (ZOOM < MIN_ZOOM || isZooming) {
-      return;
-    }
+    this.clear();
 
     var
+      context = this.context,
       item,
       h, mh,
-      sortCam = { x:CAM_X+ORIGIN_X, y:CAM_Y+ORIGIN_Y },
-      footprint,
+      sortCam = [CAM_X+ORIGIN_X, CAM_Y+ORIGIN_Y],
       wallColor, altColor, roofColor,
       dataItems = Data.items;
 
@@ -35,9 +43,8 @@ var Buildings = {
         continue;
       }
 
-      footprint = item.footprint;
-
-      if (!isVisible(footprint)) {
+      // TODO: do bbox check
+      if (!isVisible(item.geometry[0])) {
         continue;
       }
 
@@ -59,14 +66,14 @@ var Buildings = {
         case 'cone':     Cylinder.draw(context, item.center, item.radius, 0, h, mh, wallColor, altColor);                      break;
         case 'dome':     Cylinder.draw(context, item.center, item.radius, item.radius/2, h, mh, wallColor, altColor);          break;
         case 'sphere':   Cylinder.draw(context, item.center, item.radius, item.radius, h, mh, wallColor, altColor, roofColor); break;
-        case 'pyramid':  Pyramid.draw(context, footprint, item.center, h, mh, wallColor, altColor);                            break;
-        default:         Block.draw(context, footprint, item.holes, h, mh, wallColor, altColor, roofColor);
+        case 'pyramid':  Pyramid.draw(context, item.geometry, item.center, h, mh, wallColor, altColor);                     break;
+        default:         Block.draw(context, item.geometry, h, mh, wallColor, altColor, roofColor);
       }
 
       switch (item.roofShape) {
         case 'cone':    Cylinder.draw(context, item.center, item.radius, 0, h+item.roofHeight, h, roofColor, ''+ Color.parse(roofColor).lightness(0.9));             break;
         case 'dome':    Cylinder.draw(context, item.center, item.radius, item.radius/2, h+item.roofHeight, h, roofColor, ''+ Color.parse(roofColor).lightness(0.9)); break;
-        case 'pyramid': Pyramid.draw(context, footprint, item.center, h+item.roofHeight, h, roofColor, Color.parse(roofColor).lightness(0.9));                       break;
+        case 'pyramid': Pyramid.draw(context, item.geometry, item.center, h+item.roofHeight, h, roofColor, Color.parse(roofColor).lightness(0.9));                break;
       }
     }
   }

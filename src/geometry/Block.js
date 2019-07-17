@@ -1,28 +1,18 @@
 var Block = {
 
-  draw: function(context, polygon, innerPolygons, height, minHeight, color, altColor, roofColor) {
-    var
-      i, il,
-      roof = this._extrude(context, polygon, height, minHeight, color, altColor),
-      innerRoofs = [];
-
-    if (innerPolygons) {
-      for (i = 0, il = innerPolygons.length; i < il; i++) {
-        innerRoofs[i] = this._extrude(context, innerPolygons[i], height, minHeight, color, altColor);
-      }
-    }
+  draw: function(context, geometry, height, minHeight, color, altColor, roofColor) {
+    var roofs = geometry.map(function(polygon) {
+      return Block._extrude(context, polygon, height, minHeight, color, altColor);
+    });
 
     context.fillStyle = roofColor;
-
     context.beginPath();
-    this._ring(context, roof);
-    if (innerPolygons) {
-      for (i = 0, il = innerRoofs.length; i < il; i++) {
-        this._ring(context, innerRoofs[i]);
-      }
-    }
+
+    roofs.forEach(function(polygon) {
+      Block._ring(context, polygon);
+    });
+
     context.closePath();
-    context.stroke();
     context.fill();
   },
 
@@ -30,16 +20,16 @@ var Block = {
     var
       scale = CAM_Z / (CAM_Z-height),
       minScale = CAM_Z / (CAM_Z-minHeight),
-      a = { x:0, y:0 },
-      b = { x:0, y:0 },
+      a = [0, 0],
+      b = [0, 0],
       _a, _b,
       roof = [];
 
-    for (var i = 0, il = polygon.length-3; i < il; i += 2) {
-      a.x = polygon[i  ]-ORIGIN_X;
-      a.y = polygon[i+1]-ORIGIN_Y;
-      b.x = polygon[i+2]-ORIGIN_X;
-      b.y = polygon[i+3]-ORIGIN_Y;
+    for (var i = 0; i < polygon.length-1; i++) {
+      a[0] = polygon[i][0]-ORIGIN_X;
+      a[1] = polygon[i][1]-ORIGIN_Y;
+      b[0] = polygon[i+1][0]-ORIGIN_X;
+      b[1] = polygon[i+1][1]-ORIGIN_Y;
 
       _a = Buildings.project(a, scale);
       _b = Buildings.project(b, scale);
@@ -50,71 +40,61 @@ var Block = {
       }
 
       // backface culling check
-      if ((b.x-a.x) * (_a.y-a.y) > (_a.x-a.x) * (b.y-a.y)) {
+      if ((b[0]-a[0]) * (_a[1]-a[1]) > (_a[0]-a[0]) * (b[1]-a[1])) {
         // depending on direction, set wall shading
-        if ((a.x < b.x && a.y < b.y) || (a.x > b.x && a.y > b.y)) {
+        if ((a[0] < b[0] && a[1] < b[1]) || (a[0] > b[0] && a[1] > b[1])) {
           context.fillStyle = altColor;
         } else {
           context.fillStyle = color;
         }
 
         context.beginPath();
-        this._ring(context, [
-           b.x,  b.y,
-           a.x,  a.y,
-          _a.x, _a.y,
-          _b.x, _b.y
-        ]);
+        this._ring(context, [b, a, _a, _b]);
         context.closePath();
         context.fill();
       }
 
-      roof[i]   = _a.x;
-      roof[i+1] = _a.y;
+      roof[i] = _a;
     }
 
     return roof;
   },
 
   _ring: function(context, polygon) {
-    context.moveTo(polygon[0], polygon[1]);
-    for (var i = 2, il = polygon.length-1; i < il; i += 2) {
-      context.lineTo(polygon[i], polygon[i+1]);
+    context.moveTo(polygon[0][0], polygon[0][1]);
+    for (var i = 1; i < polygon.length; i++) {
+      context.lineTo(polygon[i][0], polygon[i][1]);
     }
   },
 
-  simplified: function(context, polygon, innerPolygons) {
+  simplified: function(context, geometry) {
     context.beginPath();
-    this._ringAbs(context, polygon);
-    if (innerPolygons) {
-      for (var i = 0, il = innerPolygons.length; i < il; i++) {
-        this._ringAbs(context, innerPolygons[i]);
-      }
-    }
+    geometry.forEach(function(polygon) {
+      Block._ringAbs(context, polygon);
+    });
     context.closePath();
-    context.stroke();
     context.fill();
   },
 
   _ringAbs: function(context, polygon) {
-    context.moveTo(polygon[0]-ORIGIN_X, polygon[1]-ORIGIN_Y);
-    for (var i = 2, il = polygon.length-1; i < il; i += 2) {
-      context.lineTo(polygon[i]-ORIGIN_X, polygon[i+1]-ORIGIN_Y);
+    context.moveTo(polygon[0][0]-ORIGIN_X, polygon[0][1]-ORIGIN_Y);
+    for (var i = 1; i < polygon.length; i++) {
+      context.lineTo(polygon[i][0]-ORIGIN_X, polygon[i][1]-ORIGIN_Y);
     }
   },
 
-  shadow: function(context, polygon, innerPolygons, height, minHeight) {
+  shadow: function(context, geometry, height, minHeight) {
     var
       mode = null,
-      a = { x:0, y:0 },
-      b = { x:0, y:0 },
+      a = [0, 0],
+      b = [0, 0],
       _a, _b;
 
-    for (var i = 0, il = polygon.length-3; i < il; i += 2) {
-      a.x = polygon[i  ]-ORIGIN_X;
-      a.y = polygon[i+1]-ORIGIN_Y;
-      b.x = polygon[i+2]-ORIGIN_X;
-      b.y = polygon[i+3]-ORIGIN_Y;
+    for (var i = 0; i < geometry[0].length-1; i++) {
+      a[0] = geometry[0][i  ][0]-ORIGIN_X;
+      a[1] = geometry[0][i  ][1]-ORIGIN_Y;
+      b[0] = geometry[0][i+1][0]-ORIGIN_X;
+      b[1] = geometry[0][i+1][1]-ORIGIN_Y;
 
       _a = Shadows.project(a, height);
       _b = Shadows.project(b, height);
@@ -125,48 +105,39 @@ var Block = {
       }
 
       // mode 0: floor edges, mode 1: roof edges
-      if ((b.x-a.x) * (_a.y-a.y) > (_a.x-a.x) * (b.y-a.y)) {
+      if ((b[0]-a[0]) * (_a[1]-a[1]) > (_a[0]-a[0]) * (b[1]-a[1])) {
         if (mode === 1) {
-          context.lineTo(a.x, a.y);
+          context.lineTo(a[0], a[1]);
         }
         mode = 0;
         if (!i) {
-          context.moveTo(a.x, a.y);
+          context.moveTo(a[0], a[1]);
         }
-        context.lineTo(b.x, b.y);
+        context.lineTo(b[0], b[1]);
       } else {
         if (mode === 0) {
-          context.lineTo(_a.x, _a.y);
+          context.lineTo(_a[0], _a[1]);
         }
         mode = 1;
         if (!i) {
-          context.moveTo(_a.x, _a.y);
+          context.moveTo(_a[0], _a[1]);
         }
-        context.lineTo(_b.x, _b.y);
+        context.lineTo(_b[0], _b[1]);
       }
     }
 
-    if (innerPolygons) {
-      for (i = 0, il = innerPolygons.length; i < il; i++) {
-        this._ringAbs(context, innerPolygons[i]);
-      }
-    }
-  },
-
-  shadowMask: function(context, polygon, innerPolygons) {
-    this._ringAbs(context, polygon);
-    if (innerPolygons) {
-      for (var i = 0, il = innerPolygons.length; i < il; i++) {
-        this._ringAbs(context, innerPolygons[i]);
+    if (geometry.length > 1) {
+      for (i = 1; i < geometry.length; i++) {
+        this._ringAbs(context, geometry[i]);
       }
     }
   },
 
-  hitArea: function(context, polygon, innerPolygons, height, minHeight, color) {
+  hitArea: function(context, geometry, height, minHeight, color) {
     var
       mode = null,
-      a = { x:0, y:0 },
-      b = { x:0, y:0 },
+      a = [0, 0],
+      b = [0, 0],
       scale = CAM_Z / (CAM_Z-height),
       minScale = CAM_Z / (CAM_Z-minHeight),
       _a, _b;
@@ -174,11 +145,11 @@ var Block = {
     context.fillStyle = color;
     context.beginPath();
 
-    for (var i = 0, il = polygon.length-3; i < il; i += 2) {
-      a.x = polygon[i  ]-ORIGIN_X;
-      a.y = polygon[i+1]-ORIGIN_Y;
-      b.x = polygon[i+2]-ORIGIN_X;
-      b.y = polygon[i+3]-ORIGIN_Y;
+    for (var i = 0; i < geometry[0].length-1; i++) {
+      a[0] = geometry[0][i  ][0]-ORIGIN_X;
+      a[1] = geometry[0][i  ][1]-ORIGIN_Y;
+      b[0] = geometry[0][i+1][0]-ORIGIN_X;
+      b[1] = geometry[0][i+1][1]-ORIGIN_Y;
 
       _a = Buildings.project(a, scale);
       _b = Buildings.project(b, scale);
@@ -189,24 +160,24 @@ var Block = {
       }
 
       // mode 0: floor edges, mode 1: roof edges
-      if ((b.x-a.x) * (_a.y-a.y) > (_a.x-a.x) * (b.y-a.y)) {
+      if ((b[0]-a[0]) * (_a[1]-a[1]) > (_a[0]-a[0]) * (b[1]-a[1])) {
         if (mode === 1) { // mode is initially undefined
-          context.lineTo(a.x, a.y);
+          context.lineTo(a[0], a[1]);
         }
         mode = 0;
         if (!i) {
-          context.moveTo(a.x, a.y);
+          context.moveTo(a[0], a[1]);
         }
-        context.lineTo(b.x, b.y);
+        context.lineTo(b[0], b[1]);
       } else {
         if (mode === 0) { // mode is initially undefined
-          context.lineTo(_a.x, _a.y);
+          context.lineTo(_a[0], _a[1]);
         }
         mode = 1;
         if (!i) {
-          context.moveTo(_a.x, _a.y);
+          context.moveTo(_a[0], _a[1]);
         }
-        context.lineTo(_b.x, _b.y);
+        context.lineTo(_b[0], _b[1]);
       }
     }
 

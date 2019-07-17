@@ -64,35 +64,10 @@ var GeoJSON = (function() {
     return materialColors[baseMaterials[str] || str] || null;
   }
 
-  var WINDING_CLOCKWISE = 'CW';
-  var WINDING_COUNTER_CLOCKWISE = 'CCW';
-
-  // detect winding direction: clockwise or counter clockwise
-  function getWinding(points) {
-    var x1, y1, x2, y2,
-      a = 0,
-      i, il;
-    for (i = 0, il = points.length-3; i < il; i += 2) {
-      x1 = points[i];
-      y1 = points[i+1];
-      x2 = points[i+2];
-      y2 = points[i+3];
-      a += x1*y2 - x2*y1;
-    }
-    return (a/2) > 0 ? WINDING_CLOCKWISE : WINDING_COUNTER_CLOCKWISE;
-  }
-
-  // enforce a polygon winding direcetion. Needed for proper backface culling.
-  function makeWinding(points, direction) {
-    var winding = getWinding(points);
-    if (winding === direction) {
-      return points;
-    }
-    var revPoints = [];
-    for (var i = points.length-2; i >= 0; i -= 2) {
-      revPoints.push(points[i], points[i+1]);
-    }
-    return revPoints;
+  function isClockWise(polygon) {
+    return 0 < polygon.reduce(function(a, b, c, d) {
+      return a + ((c < d.length - 1) ? (d[c+1][0] - b[0]) * (d[c+1][1] + b[1]) : 0);
+    }, 0);
   }
 
   function alignProperties(prop) {
@@ -151,8 +126,7 @@ var GeoJSON = (function() {
 
   function getGeometries(geometry) {
     var
-      i, il, polygon,
-      geometries = [], sub;
+      i, il, geometries = [], sub;
 
     switch (geometry.type) {
       case 'GeometryCollection':
@@ -174,36 +148,19 @@ var GeoJSON = (function() {
         return geometries;
 
       case 'Polygon':
-        polygon = geometry.coordinates;
-      break;
+        var res = geometry.coordinates.map(function(polygon, i) {
+          // outer ring (first ring) needs to be clockwise, inner rings
+          // counter-clockwise. If they are not, make them by reverting order.
+          if ((i === 0) !== isClockWise(polygon)) {
+            polygon.reverse();
+          }
+          return polygon;
+        });
 
-      default: return [];
+        return [res];
     }
 
-    var
-      j, jl,
-      p, lat = 1, lon = 0,
-      outer = [], inner = [];
-
-    p = polygon[0];
-    for (i = 0, il = p.length; i < il; i++) {
-      outer.push(p[i][lat], p[i][lon]);
-    }
-    outer = makeWinding(outer, WINDING_CLOCKWISE);
-
-    for (i = 0, il = polygon.length-1; i < il; i++) {
-      p = polygon[i+1];
-      inner[i] = [];
-      for (j = 0, jl = p.length; j < jl; j++) {
-        inner[i].push(p[j][lat], p[j][lon]);
-      }
-      inner[i] = makeWinding(inner[i], WINDING_COUNTER_CLOCKWISE);
-    }
-
-    return [{
-      outer: outer,
-      inner: inner.length ? inner : null
-    }];
+    return [];
   }
 
   function clone(obj) {
@@ -242,14 +199,13 @@ var GeoJSON = (function() {
 
         for (j = 0, jl = geometries.length; j < jl; j++) {
           item = clone(baseItem);
-          item.footprint = geometries[j].outer;
+
+          item.geometry = geometries[j];
+
           if (item.isRotational) {
-            item.radius = getLonDelta(item.footprint);
+            item.radius = getLonDelta(item.geometry[0]) / 2;
           }
 
-          if (geometries[j].inner) {
-            item.holes = geometries[j].inner;
-          }
           if (feature.id || feature.properties.id) {
             item.id = feature.id || feature.properties.id;
           }

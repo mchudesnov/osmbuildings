@@ -1,6 +1,16 @@
 
 var HitAreas = {
 
+  context: null,
+
+  init: function(context) {
+    this.context = context;
+  },
+
+  setOpacity: function(opacity) {},
+
+  clear: function() {},
+
   _idMapping: [null],
 
   reset: function() {
@@ -19,20 +29,13 @@ var HitAreas = {
   },
 
   _render: function() {
-    var context = this.context;
-
-    context.clearRect(0, 0, WIDTH, HEIGHT);
-
-    // show on high zoom levels only and avoid rendering during zoom
-    if (ZOOM < MIN_ZOOM || isZooming) {
-      return;
-    }
-
+    this.clear();
+    
     var
+      context = this.context,
       item,
       h, mh,
-      sortCam = { x:CAM_X+ORIGIN_X, y:CAM_Y+ORIGIN_Y },
-      footprint,
+      sortCam = [CAM_X+ORIGIN_X, CAM_Y+ORIGIN_Y],
       color,
       dataItems = Data.items;
 
@@ -47,9 +50,8 @@ var HitAreas = {
         continue;
       }
 
-      footprint = item.footprint;
-
-      if (!isVisible(footprint)) {
+      // TODO: track bboxes
+      if (!isVisible(item.geometry[0])) {
         continue;
       }
 
@@ -65,14 +67,14 @@ var HitAreas = {
         case 'cone':     Cylinder.hitArea(context, item.center, item.radius, 0, h, mh, color);             break;
         case 'dome':     Cylinder.hitArea(context, item.center, item.radius, item.radius/2, h, mh, color); break;
         case 'sphere':   Cylinder.hitArea(context, item.center, item.radius, item.radius, h, mh, color);   break;
-        case 'pyramid':  Pyramid.hitArea(context, footprint, item.center, h, mh, color);                   break;
-        default:         Block.hitArea(context, footprint, item.holes, h, mh, color);
+        case 'pyramid':  Pyramid.hitArea(context, item.geometry, item.center, h, mh, color);            break;
+        default:         Block.hitArea(context, item.geometry, h, mh, color);
       }
 
       switch (item.roofShape) {
         case 'cone':    Cylinder.hitArea(context, item.center, item.radius, 0, h+item.roofHeight, h, color);             break;
         case 'dome':    Cylinder.hitArea(context, item.center, item.radius, item.radius/2, h+item.roofHeight, h, color); break;
-        case 'pyramid': Pyramid.hitArea(context, footprint, item.center, h+item.roofHeight, h, color);                   break;
+        case 'pyramid': Pyramid.hitArea(context, item.geometry, item.center, h+item.roofHeight, h, color);            break;
       }
     }
 

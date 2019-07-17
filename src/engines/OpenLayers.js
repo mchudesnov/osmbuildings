@@ -4,9 +4,10 @@ var parent = OpenLayers.Layer.prototype;
 
 var osmb = function(map) {
   this.offset = { x:0, y:0 }; // cumulative cam offset during moveBy()
-
+  
   parent.initialize.call(this, this.name, { projection:'EPSG:900913' });
 
+  Layers.init();
   if (map) {
 	  map.addLayer(this);
   }
@@ -84,7 +85,7 @@ proto.moveTo = function(bounds, zoomChanged, isDragging) {
   this.setOrigin();
   this.offset.x = 0;
   this.offset.y = 0;
-  moveCam(this.offset);
+  moveCam(this.offset.x, this.offset.y);
 
   if (zoomChanged) {
     onZoomEnd({ zoom:map.zoom });
@@ -99,6 +100,6 @@ proto.moveByPx = function(dx, dy) {
   this.offset.x += dx;
   this.offset.y += dy;
   var res = parent.moveByPx.call(this, dx, dy);
-  moveCam(this.offset);
+  moveCam(this.offset.x, this.offset.y);
   return res;
 };

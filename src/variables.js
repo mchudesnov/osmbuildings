@@ -16,8 +16,6 @@ var
 
   LAT = 'latitude', LON = 'longitude',
 
-  TRUE = true, FALSE = false,
-
   WIDTH = 0, HEIGHT = 0,
   CENTER_X = 0, CENTER_Y = 0,
   ORIGIN_X = 0, ORIGIN_Y = 0,
@@ -31,11 +29,10 @@ var
   ROOF_COLOR_STR = ''+ ROOF_COLOR,
 
   PIXEL_PER_DEG = 0,
-  ZOOM_FACTOR = 1,
 
   MAX_HEIGHT, // taller buildings will be cut to this
   DEFAULT_HEIGHT = 5,
 
   CAM_X, CAM_Y, CAM_Z = 450,
 
-  isZooming;
+  IS_ZOOMING;

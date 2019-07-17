@@ -1,0 +1,26 @@
+{
+  "js": [
+    "src/prefix.js",
+    "src/shortcuts.js",
+    "node_modules/color/dist/Color.debug.js",
+    "src/lib/SunPosition.js",
+    "src/GeoJSON.js",
+    "src/variables.js",
+    "src/geometry.js",
+    "src/functions.js",
+    "src/Data.js",
+    "src/geometry/Block.js",
+    "src/geometry/Cylinder.js",
+    "src/geometry/Pyramid.js",
+    "src/layers/index.js",
+    "src/layers/Buildings.js",
+    "src/layers/Simplified.js",
+    "src/layers/Shadows.js",
+    "src/layers/HitAreas.js",
+    "src/Debug.js",
+    "src/adapter.js",
+    "src/engines/{engine}.js",
+    "src/public.js",
+    "src/suffix.js"
+  ]
+}

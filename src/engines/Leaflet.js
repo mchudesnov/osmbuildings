@@ -1,6 +1,7 @@
 
 var osmb = function(map) {
   this.offset = { x:0, y:0 };
+  Layers.init();
   if (map) {
 	  map.addLayer(this);
   }
@@ -72,7 +73,7 @@ proto.onRemove = function() {
 
 proto.onMove = function(e) {
   var off = this.getOffset();
-  moveCam({ x:this.offset.x-off.x, y:this.offset.y-off.y });
+  moveCam(this.offset.x-off.x, this.offset.y-off.y);
 };
 
 proto.onMoveEnd = function(e) {
@@ -88,7 +89,7 @@ proto.onMoveEnd = function(e) {
 
   this.offset = off;
   Layers.setPosition(-off.x, -off.y);
-  moveCam({ x:0, y:0 });
+  moveCam(0, 0);
 
   setSize({ width:map._size.x, height:map._size.y }); // in case this is triggered by resize
   setOrigin({ x:po.x-off.x, y:po.y-off.y });
@@ -100,17 +101,33 @@ proto.onZoomStart = function(e) {
 };
 
 proto.onZoom = function(e) {
-//    var map = this.map,
-//        scale = map.getZoomScale(e.zoom),
-//        offset = map._getCenterOffset(e.center).divideBy(1 - 1/scale),
-//        viewportPos = map.containerPointToLayerPoint(map.getSize().multiplyBy(-1)),
-//        origin = viewportPos.add(offset).round();
-//
-//    this.container.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString((origin.multiplyBy(-1).add(this.getOffset().multiplyBy(-1)).multiplyBy(scale).add(origin))) + ' scale(' + scale + ') ';
-//    isZooming = true;
+  var center = this.map.latLngToContainerPoint(e.center);
+  var scale = Math.pow(2, e.zoom-ZOOM);
+
+  var dx = WIDTH /2 - center.x;
+  var dy = HEIGHT/2 - center.y;
+
+  var x = WIDTH /2;
+  var y = HEIGHT/2;
+
+  if (e.zoom > ZOOM) {
+    x -= dx * scale;
+    y -= dy * scale;
+  } else {
+    x += dx;
+    y += dy;
+  }
+
+  Layers.container.classList.add('zoom-animation');
+  Layers.container.style.transformOrigin = x + 'px '+ y + 'px';
+  Layers.container.style.transform = 'translate3d(0, 0, 0) scale(' + scale + ')';
 };
 
 proto.onZoomEnd = function(e) {
+  Layers.clear();
+  Layers.container.classList.remove('zoom-animation');
+  Layers.container.style.transform = 'translate3d(0, 0, 0) scale(1)';
+
   var
     map = this.map,
     off = this.getOffset(),
@@ -128,7 +145,7 @@ proto.onViewReset = function() {
 
   this.offset = off;
   Layers.setPosition(-off.x, -off.y);
-  moveCam({ x:0, y:0 });
+  moveCam(0, 0);
 };
 
 proto.onClick = function(e) {
